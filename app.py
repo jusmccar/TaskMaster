@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, redirect, render_template, url_for, request
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from os import path
@@ -22,9 +22,21 @@ def create_database():
     if not path.exists(DB_NAME):
         db.create_all()
 
-@app.route("/")
+@app.route("/", methods=["POST", "GET"])
 def index():
-    return render_template("index.html")
+    if request.method == "POST":
+        task_content = request.form["content"]
+        new_task = Task(content=task_content)
+
+        try:
+            db.session.add(new_task)
+            db.session.commit()
+            return redirect(url_for(".index"))
+        except:
+            return "There was an issue adding your task."
+    else:
+        tasks = Task.query.order_by(Task.date_created).all()
+        return render_template("index.html", tasks=tasks)
 
 if __name__ == "__main__":
     app.run(debug=True)
